@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.text-extractor" path="/org/gnome/shell/extensions/text-extractor/">
+    <key name="text-extractor-shortcut" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;t']</default>
+      <summary>Text Extractor Shortcut</summary>
+      <description>Keyboard shortcut to trigger the text extractor screenshot and OCR</description>
+    </key>
+    <key name="ocr-language" type="s">
+      <default>'eng'</default>
+      <summary>OCR Language</summary>
+      <description>Tesseract OCR language code (e.g., 'eng', 'spa', 'fra')</description>
+    </key>
+  </schema>
+</schemalist>
