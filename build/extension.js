@@ -353,6 +353,9 @@ export default class TextExtractorExtension extends Extension {
                 this._showNotification('OCR Error', stderr || 'OCR produced no output');
             }
             
+            // Delete screenshot if save-screenshots is disabled
+            this._cleanupScreenshot(imagePath);
+            
             this._isProcessing = false;
             
         } catch (e) {
@@ -362,9 +365,27 @@ export default class TextExtractorExtension extends Extension {
             this._showNotification('OCR Error', e.message);
         }
     }
+    
+    _cleanupScreenshot(imagePath) {
+        // Check if user wants to keep screenshots
+        if (this._settings && !this._settings.get_boolean('save-screenshots')) {
+            try {
+                const file = Gio.File.new_for_path(imagePath);
+                if (file.query_exists(null)) {
+                    file.delete(null);
+                    console.log(`[TextExtractor] Screenshot deleted: ${imagePath}`);
+                }
+            } catch (e) {
+                console.error(`[TextExtractor] Failed to delete screenshot: ${e.message}`);
+            }
+        }
+    }
 
     _showNotification(title, message) {
-        Main.notify(title, message);
+        // Check if notifications are enabled
+        if (this._settings && this._settings.get_boolean('show-notification')) {
+            Main.notify(title, message);
+        }
     }
     
     _showLoadingIndicator(message) {

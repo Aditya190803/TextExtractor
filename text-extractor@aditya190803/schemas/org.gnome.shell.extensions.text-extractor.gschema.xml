@@ -2,63 +2,32 @@
 <schemalist gettext-domain="text-extractor">
   <schema id="org.gnome.shell.extensions.text-extractor" path="/org/gnome/shell/extensions/text-extractor/">
     
-    <!-- General Settings -->
+    <!-- Keyboard Shortcut -->
     <key name="shortcut" type="as">
       <default>['&lt;Super&gt;&lt;Shift&gt;t']</default>
       <summary>Keyboard shortcut</summary>
       <description>Keyboard shortcut to trigger text extraction</description>
     </key>
     
-    <key name="screenshot-directory" type="s">
-      <default>''</default>
-      <summary>Screenshot directory</summary>
-      <description>Directory to save screenshots. Empty means use system default.</description>
-    </key>
-    
-    <key name="show-confirmation" type="b">
-      <default>true</default>
-      <summary>Show confirmation</summary>
-      <description>Show confirmation notification after copying text</description>
-    </key>
-    
-    <!-- OCR Settings -->
+    <!-- OCR Language -->
     <key name="ocr-language" type="s">
       <default>'eng'</default>
       <summary>OCR language</summary>
       <description>Language code for Tesseract OCR (e.g., eng, deu, fra)</description>
     </key>
     
-    <key name="default-mode" type="s">
-      <default>'selection'</default>
-      <summary>Default mode</summary>
-      <description>Default text selection mode: 'selection', 'all'</description>
+    <!-- Show Notification -->
+    <key name="show-notification" type="b">
+      <default>true</default>
+      <summary>Show notification</summary>
+      <description>Show notification after text extraction</description>
     </key>
     
-    <key name="auto-copy" type="b">
-      <default>false</default>
-      <summary>Auto copy</summary>
-      <description>Automatically copy extracted text to clipboard</description>
-    </key>
-    
-    <!-- UI Settings -->
-    <key name="overlay-opacity" type="d">
-      <default>0.85</default>
-      <range min="0.1" max="1.0"/>
-      <summary>Overlay opacity</summary>
-      <description>Opacity of the overlay background</description>
-    </key>
-    
-    <key name="highlight-color" type="s">
-      <default>'#3584e4'</default>
-      <summary>Highlight color</summary>
-      <description>Color for highlighting selected text regions</description>
-    </key>
-    
-    <key name="font-size" type="i">
-      <default>12</default>
-      <range min="8" max="24"/>
-      <summary>Font size</summary>
-      <description>Font size for the text preview panel</description>
+    <!-- Save Screenshots -->
+    <key name="save-screenshots" type="b">
+      <default>true</default>
+      <summary>Save screenshots</summary>
+      <description>Keep screenshots in ~/Pictures/TextExtractor/ after OCR. If disabled, screenshots are deleted immediately after text extraction.</description>
     </key>
     
   </schema>
