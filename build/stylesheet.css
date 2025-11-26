@@ -1,0 +1,126 @@
+/**
+ * Text Extractor - Stylesheet
+ * CSS styles for the extension UI
+ */
+
+/* Main overlay container */
+#textExtractorOverlay {
+    background-color: transparent;
+}
+
+/* Text region boxes */
+.text-region {
+    background-color: rgba(53, 132, 228, 0.2);
+    border: 1px solid #3584e4;
+    border-radius: 2px;
+    transition: all 150ms ease-in-out;
+}
+
+.text-region:hover {
+    background-color: rgba(53, 132, 228, 0.4);
+    border-width: 2px;
+}
+
+.text-region.selected {
+    background-color: rgba(46, 194, 126, 0.5);
+    border-color: #2ec27e;
+    border-width: 2px;
+}
+
+/* Selection box (drag selection) */
+.selection-box {
+    background-color: rgba(53, 132, 228, 0.3);
+    border: 2px dashed #3584e4;
+}
+
+/* Text panel */
+.text-panel {
+    background-color: rgba(36, 36, 36, 0.95);
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.text-panel-title {
+    font-weight: bold;
+    font-size: 14px;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.text-panel-content {
+    color: rgba(255, 255, 255, 0.8);
+    padding: 8px;
+}
+
+/* Button panel */
+.button-panel {
+    background-color: rgba(36, 36, 36, 0.95);
+    border-radius: 8px;
+    padding: 12px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Buttons */
+.text-extractor-button {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 8px 16px;
+    margin: 0 6px;
+    color: white;
+    font-size: 12px;
+    transition: background-color 150ms ease-in-out;
+}
+
+.text-extractor-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.text-extractor-button.primary {
+    background-color: #3584e4;
+}
+
+.text-extractor-button.primary:hover {
+    background-color: #4a90e8;
+}
+
+.text-extractor-button.destructive {
+    background-color: #c01c28;
+}
+
+.text-extractor-button.destructive:hover {
+    background-color: #d63038;
+}
+
+/* Help text */
+.help-text {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    padding: 8px;
+}
+
+/* Error message */
+.error-message {
+    color: #ff6b6b;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 20px;
+}
+
+/* Image container */
+.image-container {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+/* Scrollview styling */
+.text-scrollview {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+/* Loading indicator */
+.loading-indicator {
+    color: white;
+    font-size: 14px;
+}

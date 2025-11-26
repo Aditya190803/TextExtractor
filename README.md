@@ -1,239 +1,320 @@
-# Text Extractor GNOME Extension
+# Text Extractor
 
-A lightweight GNOME Shell extension that enables quick text extraction from any area of your screen using OCR (Optical Character Recognition). Similar to Windows PowerToys Text Extractor, but for Linux GNOME environments.
+A GNOME Shell extension that allows you to extract text from any area of your screen using OCR (Optical Character Recognition).
 
-**Author:** Aditya Mer
-**Version:** 1.0
-**Tested on:** GNOME Shell 47, Arch Linux
+![GNOME Shell](https://img.shields.io/badge/GNOME%20Shell-48%20|%2049-blue)
+![License](https://img.shields.io/badge/License-GPL--3.0-green)
 
 ## Features
 
-- **Quick Keyboard Shortcut**: Press `Super+Shift+T` to instantly capture and extract text
-- **Area Selection**: Select any region of your screen to extract text from
-- **OCR Processing**: Powered by Tesseract OCR for accurate text recognition
-- **Text Selection GUI**: Review and select specific portions of extracted text
-- **Clipboard Integration**: Copy all or selected text with one click
-- **Multi-language Support**: Configure OCR language via GSettings
-- **Wayland & X11 Compatible**: Works on both display servers
+- 📸 **Instant Native Screenshot UI**: Uses xdg-desktop-portal for fast, native screenshot selection
+- 🔍 **OCR Processing**: Extract text from the selected region using Tesseract OCR
+- 📝 **Interactive Text Selection**: Click on individual text regions or drag to select multiple
+- 📋 **Copy to Clipboard**: Instantly copy extracted text to clipboard
+- 💾 **Save to File**: Export extracted text to a text file
+- ⌨️ **Keyboard Shortcuts**: Quick access with customizable keyboard shortcuts
+- 🌍 **Multi-language Support**: Works with multiple OCR languages
+- ⚙️ **Customizable**: Adjust overlay appearance, highlight colors, and more
 
 ## Screenshots
 
-Press `Super+Shift+T` → Select area → View extracted text → Copy to clipboard
+*Coming soon*
+
+## Requirements
+
+### System Dependencies
+
+- **GNOME Shell 48 or 49** (required)
+- **xdg-desktop-portal-gnome** - For native screenshot UI
+- **Tesseract OCR** - The OCR engine
+- **Python 3** - For the OCR helper script
+
+### Python Dependencies
+
+- **pytesseract** - Python wrapper for Tesseract
+- **Pillow** - Python imaging library
 
 ## Installation
 
-### Prerequisites
-
-#### Arch Linux
-```bash
-sudo pacman -S python-pillow python-pytesseract tesseract python-pyperclip python-gobject gtk4 gnome-screenshot
-```
+### 1. Install System Dependencies
 
 #### Ubuntu/Debian
 ```bash
-sudo apt install python3-pil python3-pytesseract tesseract-ocr python3-pyperclip python3-gi gir1.2-gtk-4.0 gnome-screenshot
+sudo apt update
+sudo apt install tesseract-ocr tesseract-ocr-eng python3 python3-pip
 ```
 
 #### Fedora
 ```bash
-sudo dnf install python3-pillow python3-pytesseract tesseract python3-pyperclip python3-gobject gtk4 gnome-screenshot
+sudo dnf install tesseract tesseract-langpack-eng python3 python3-pip
 ```
 
-### Install Extension
+#### Arch Linux
+```bash
+sudo pacman -S tesseract tesseract-data-eng python python-pip
+```
 
-1. **Clone or download this repository**
-   ```bash
-   git clone https://github.com/aditya190803/text-extractor.git
-   cd text-extractor
-   ```
+### 2. Install Python Dependencies
 
-2. **Run the installation script**
-   ```bash
-   ./install.sh
-   ```
+```bash
+pip3 install pytesseract Pillow
+```
 
-3. **Restart GNOME Shell**
-   - **X11**: Press `Alt+F2`, type `r`, press `Enter`
-   - **Wayland**: Log out and log back in
+### 3. Install Additional OCR Languages (Optional)
 
-4. **Enable the extension**
+#### Ubuntu/Debian
+```bash
+# List available languages
+apt-cache search tesseract-ocr-
+
+# Install specific language (e.g., German)
+sudo apt install tesseract-ocr-deu
+
+# Install all languages
+sudo apt install tesseract-ocr-all
+```
+
+#### Fedora
+```bash
+# List available languages
+dnf search tesseract-langpack-
+
+# Install specific language
+sudo dnf install tesseract-langpack-deu
+```
+
+#### Arch Linux
+```bash
+# Install specific language
+sudo pacman -S tesseract-data-deu
+
+# Install all languages
+sudo pacman -S tesseract-data
+```
+
+### 4. Install the Extension
+
+#### From Source
+
+```bash
+# Clone the repository
+git clone https://github.com/Aditya190803/TextExtractor.git
+cd TextExtractor
+
+# Run the install script
+chmod +x install.sh
+./install.sh
+```
+
+#### Manual Installation
+
+```bash
+# Build and install the extension
+./install.sh
+```
+
+### 5. Enable the Extension
+
+#### On X11
+1. Press `Alt+F2`, type `r`, and press Enter to restart GNOME Shell
+2. Enable the extension:
    ```bash
    gnome-extensions enable text-extractor@aditya190803
    ```
+
+#### On Wayland
+1. Log out and log back in
+2. Enable the extension:
+   ```bash
+   gnome-extensions enable text-extractor@aditya190803
+   ```
+
+Alternatively, use the **GNOME Extensions** app or **Extension Manager** to enable it.
 
 ## Usage
 
 ### Basic Usage
 
-1. Press `Super+Shift+T` (Windows key + Shift + T)
-2. Click and drag to select the area containing text
-3. Wait a moment for OCR processing
-4. A window appears with the extracted text
-5. Select specific text or leave as-is to copy all
-6. Click "Copy Selected Text" button
-7. Paste the text anywhere with `Ctrl+V`
+1. Press **Super+Shift+T** (or your configured shortcut)
+2. The native GNOME screenshot UI appears instantly - select the screen region containing text
+3. An overlay will appear showing detected text regions
+4. Click on text regions to select them, or drag to select multiple
+5. Press **Enter** or click **Copy to Clipboard** to copy the text
+6. Press **ESC** or click **Close** to exit
 
-### Customizing the Keyboard Shortcut
+### Keyboard Shortcuts
 
-Using GNOME Settings:
-1. Open **Settings** → **Keyboard** → **View and Customize Shortcuts**
-2. Search for "Text Extractor"
-3. Click on the shortcut and press your desired key combination
+| Shortcut | Action |
+|----------|--------|
+| `Super+Shift+T` | Activate Text Extractor |
+| `ESC` | Close overlay |
+| `Enter` | Copy selected text to clipboard |
+| `Ctrl+A` | Select all text regions |
+| `Ctrl+C` | Copy selected text |
+| `Ctrl+S` | Save selected text to file |
 
-Using command line:
-```bash
-gsettings set org.gnome.shell.extensions.text-extractor text-extractor-shortcut "['<Super><Shift>e']"
-```
+### Configuration
 
-### Changing OCR Language
+Open the extension preferences through:
+- GNOME Extensions app → Text Extractor → Settings
+- Or run: `gnome-extensions prefs text-extractor@aditya190803`
 
-By default, English (`eng`) is used. To change:
+#### General Settings
+- **Activation Shortcut**: Customize the keyboard shortcut
+- **Screenshot Directory**: Where screenshots are saved
+- **Show Confirmation**: Enable/disable copy confirmation notifications
 
-```bash
-gsettings set org.gnome.shell.extensions.text-extractor ocr-language 'fra'
-```
+#### OCR Settings
+- **Recognition Language**: Select OCR language (default: English)
+- **Custom Language Code**: Enter custom Tesseract language code
+- **Default Selection Mode**: Start with manual selection or select all
+- **Auto Copy**: Automatically close overlay after copying
 
-Available languages depend on installed Tesseract language packs:
-- English: `eng` (default)
-- Spanish: `spa`
-- French: `fra`
-- German: `deu`
-- Chinese Simplified: `chi_sim`
-- Arabic: `ara`
+#### Appearance Settings
+- **Background Opacity**: Adjust overlay darkness (0.1 - 1.0)
+- **Highlight Color**: Color for text region borders
+- **Font Size**: Text size in the preview panel
 
-Install additional languages on Arch:
-```bash
-sudo pacman -S tesseract-data-<language>
-```
+## Supported Languages
 
-## File Structure
+The extension supports all languages that Tesseract OCR supports. Common languages include:
 
-```
-text-extractor/
-├── extension/
-│   ├── extension.js              # Main GNOME Shell extension
-│   ├── metadata.json             # Extension metadata
-│   └── schemas/
-│       └── org.gnome.shell.extensions.text-extractor.gschema.xml
-├── helper/
-│   └── text-extractor-helper.py  # Python script for screenshot + OCR + GUI
-├── install.sh                     # Installation script
-└── README.md                      # This file
-```
+| Language | Code |
+|----------|------|
+| English | `eng` |
+| German | `deu` |
+| French | `fra` |
+| Spanish | `spa` |
+| Italian | `ita` |
+| Portuguese | `por` |
+| Dutch | `nld` |
+| Russian | `rus` |
+| Japanese | `jpn` |
+| Chinese (Simplified) | `chi_sim` |
+| Chinese (Traditional) | `chi_tra` |
+| Korean | `kor` |
+| Arabic | `ara` |
+| Hindi | `hin` |
 
-## How It Works
-
-1. **GNOME Shell Extension** (extension.js):
-   - Registers the keyboard shortcut
-   - Listens for shortcut activation
-   - Spawns the Python helper script
-
-2. **Python Helper** (text-extractor-helper.py):
-   - Captures screenshot using `gnome-screenshot -a`
-   - Performs OCR using Tesseract via `pytesseract`
-   - Displays GTK4 window with extracted text
-   - Handles clipboard operations with `pyperclip`
-   - Cleans up temporary files
+To use a language, you must have the corresponding Tesseract language pack installed.
 
 ## Troubleshooting
 
-### Extension not showing up
+### "Tesseract OCR is not installed"
+
+Install Tesseract using your package manager (see Installation section).
+
+### "pytesseract module not found"
+
+Install the Python module:
 ```bash
-gnome-extensions list
+pip3 install pytesseract
 ```
-If not listed, verify installation directory:
-```bash
-ls ~/.local/share/gnome-shell/extensions/text-extractor@aditya190803/
-```
+
+### "No text detected"
+
+- Ensure the image has clear, readable text
+- Try adjusting the screen region to include more context
+- Check if the correct OCR language is selected
+
+### Extension not appearing
+
+1. Check if the extension is installed:
+   ```bash
+   ls ~/.local/share/gnome-shell/extensions/text-extractor@aditya190803/
+   ```
+2. Check GNOME Shell logs:
+   ```bash
+   journalctl -f -o cat /usr/bin/gnome-shell
+   ```
+3. Ensure GNOME Shell version is compatible (48 or 49)
 
 ### Shortcut not working
-Check if the shortcut is properly registered:
-```bash
-gsettings get org.gnome.shell.extensions.text-extractor text-extractor-shortcut
-```
 
-### OCR returns no text
-- Ensure the selected area contains clear, readable text
-- Try increasing the size of the capture area
-- Verify Tesseract is installed: `tesseract --version`
-- Check if the correct language pack is installed
-
-### Screenshot fails
-- Verify gnome-screenshot is installed: `which gnome-screenshot`
-- On Wayland, ensure proper permissions for screen capture
-- Try running manually: `gnome-screenshot -a`
-
-### Python errors
-Check Python dependencies:
-```bash
-python3 -c "import PIL, pytesseract, pyperclip, gi"
-```
-
-View extension logs:
-```bash
-journalctl -f -o cat /usr/bin/gnome-shell
-```
+1. Check if the shortcut conflicts with other applications
+2. Try resetting to default in preferences
+3. Ensure the extension is enabled
 
 ## Uninstallation
 
 ```bash
+# Run the uninstall script
+./uninstall.sh
+
+# Or manually remove
 gnome-extensions disable text-extractor@aditya190803
 rm -rf ~/.local/share/gnome-shell/extensions/text-extractor@aditya190803
-rm -f ~/.local/share/gnome-shell/extensions/helper/text-extractor-helper.py
 ```
 
-Then restart GNOME Shell.
+## Development
 
-## Future Enhancements
+### Project Structure
 
-- [ ] Language selection from GUI
-- [ ] History of extracted text
-- [ ] Dark/light theme support
-- [ ] Direct PipeWire API integration for Wayland
-- [ ] Quick Settings toggle
-- [ ] Confidence score display
-- [ ] Export to file option
+```
+TextExtractor/
+├── text-extractor@aditya190803/
+│   ├── extension.js      # Main extension entry point
+│   ├── overlay.js        # Text selection overlay UI
+│   ├── prefs.js          # Preferences window
+│   ├── utils.js          # Utility functions
+│   ├── ocr_helper.py     # Python OCR script
+│   ├── stylesheet.css    # Extension styles
+│   ├── metadata.json     # Extension metadata
+│   └── schemas/
+│       └── org.gnome.shell.extensions.text-extractor.gschema.xml
+├── install.sh            # Install & Build script
+├── uninstall.sh          # Uninstall script
+├── README.md             # This file
+└── todo.md               # Development TODO
+```
+
+### Building from Source
+
+```bash
+# Compile schemas and create zip package
+./install.sh
+
+# The extension package will be at:
+# build/text-extractor@aditya190803.zip
+```
+
+### Testing Changes
+
+```bash
+# After making changes, reinstall
+./install.sh
+
+# Restart GNOME Shell (X11)
+# Press Alt+F2, type 'r', press Enter
+
+# Check logs for errors
+journalctl -f -o cat /usr/bin/gnome-shell
+```
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit issues or pull requests.
+Contributions are welcome! Please feel free to submit issues and pull requests.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT License
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
-Copyright (c) 2025 Aditya Mer
+## Credits
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+- [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) - The OCR engine
+- [pytesseract](https://github.com/madmaze/pytesseract) - Python wrapper for Tesseract
+- GNOME Shell team for the excellent extension API
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## Author
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-## Acknowledgments
-
-- Inspired by Windows PowerToys Text Extractor
-- Built with [Tesseract OCR](https://github.com/tesseract-ocr/tesseract)
-- Uses [GTK4](https://www.gtk.org/) for the user interface
-
-## Support
-
-For issues, questions, or suggestions:
-- GitHub Issues: https://github.com/aditya190803/text-extractor/issues
-- Author: Aditya Mer
+**Aditya** - [GitHub](https://github.com/Aditya190803)
 
 ---
 
-**Enjoy extracting text from your screen!** 📋✨
+If you find this extension useful, please consider giving it a ⭐ on GitHub!
