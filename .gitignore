@@ -29,8 +29,8 @@ Thumbs.db
 *.temp
 *.log
 
-# Archives
-*.zip
+# Archives (exclude release packages)
+# *.zip    # Allow release packages
 *.tar
 *.tar.gz
 *.tgz
