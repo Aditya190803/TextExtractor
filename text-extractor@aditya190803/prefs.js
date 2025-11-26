@@ -145,7 +145,7 @@ export default class TextExtractorPreferences extends ExtensionPreferences {
         
         const saveRow = new Adw.SwitchRow({
             title: _('Save Screenshots'),
-            subtitle: _('Keep screenshots in ~/Pictures/TextExtractor/\nIf disabled, deleted immediately after OCR'),
+            subtitle: _('Keep screenshots in ~/Pictures/Screenshots/TextExtractor/\nIf disabled, deleted immediately after OCR'),
         });
         settings.bind('save-screenshots', saveRow, 'active', Gio.SettingsBindFlags.DEFAULT);
         storageGroup.add(saveRow);
@@ -158,7 +158,7 @@ export default class TextExtractorPreferences extends ExtensionPreferences {
         
         const aboutRow = new Adw.ActionRow({
             title: _('Text Extractor'),
-            subtitle: _('Extract text from screen using OCR\nScreenshots saved to ~/Pictures/TextExtractor/'),
+            subtitle: _('Extract text from screen using OCR\nScreenshots saved to ~/Pictures/Screenshots/TextExtractor/'),
         });
         aboutGroup.add(aboutRow);
         

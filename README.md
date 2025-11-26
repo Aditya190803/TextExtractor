@@ -85,7 +85,7 @@ Open preferences via:
 | **Show Notifications** | Display result notifications | ✓ Enabled |
 | **Save Screenshots** | Keep screenshots after OCR | ✓ Enabled |
 
-Screenshots are saved to `~/Pictures/TextExtractor/`
+Screenshots are saved to `~/Pictures/Screenshots/TextExtractor/`
 
 ## Supported Languages
 

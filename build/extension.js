@@ -70,9 +70,9 @@ export default class TextExtractorExtension extends Extension {
     }
 
     _ensureScreenshotDir() {
-        // Create ~/Pictures/TextExtractor/
+        // Create ~/Pictures/Screenshots/TextExtractor/
         const picturesDir = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES);
-        this._screenshotDir = GLib.build_filenamev([picturesDir, 'TextExtractor']);
+        this._screenshotDir = GLib.build_filenamev([picturesDir, 'Screenshots', 'TextExtractor']);
         
         const dir = Gio.File.new_for_path(this._screenshotDir);
         if (!dir.query_exists(null)) {
