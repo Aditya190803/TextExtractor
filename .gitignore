@@ -1,0 +1,36 @@
+# Build outputs
+dist/
+build/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE and editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.venv
+venv/
+env/
+
+# OS
+.gitignore.swp
+Thumbs.db
+
+# Temp files
+*.tmp
+*.temp
+*.log
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
