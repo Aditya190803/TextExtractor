@@ -164,7 +164,7 @@ export default class TextExtractorPreferences extends ExtensionPreferences {
         
         const versionRow = new Adw.ActionRow({
             title: _('Version'),
-            subtitle: '2.0',
+            subtitle: '1.0',
         });
         aboutGroup.add(versionRow);
     }

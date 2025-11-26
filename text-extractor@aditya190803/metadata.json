@@ -1,8 +1,8 @@
 {
     "name": "Text Extractor",
-    "description": "Extract text from screen regions using OCR. Take a screenshot using the native portal UI and select text regions to copy or save. Requires Tesseract OCR.",
+    "description": "Extract text from screen using OCR. Select a screen region, and the text is automatically copied to clipboard. Requires Tesseract OCR.",
     "uuid": "text-extractor@aditya190803",
-    "version": 2,
+    "version": 1,
     "shell-version": ["48", "49"],
     "url": "https://github.com/Aditya190803/TextExtractor",
     "settings-schema": "org.gnome.shell.extensions.text-extractor",
