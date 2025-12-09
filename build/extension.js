@@ -30,11 +30,11 @@ export default class TextExtractorExtension extends Extension {
         this._isProcessing = false;
         this._requestCounter = 0;
         this._screenshotDir = null;
+        this._cancellable = null;
+        this._subprocess = null;
     }
 
     enable() {
-        console.log('[TextExtractor] Enabling extension');
-        
         this._settings = this.getSettings();
         
         // Create screenshot directory
@@ -51,8 +51,25 @@ export default class TextExtractorExtension extends Extension {
     }
 
     disable() {
-        console.log('[TextExtractor] Disabling extension');
+        // Cancel subprocess properly before force exit
+        if (this._cancellable && !this._cancellable.is_cancelled()) {
+            this._cancellable.cancel();
+        }
         
+        if (this._subprocess) {
+            try {
+                // Wait briefly for graceful cancellation
+                this._subprocess.force_exit();
+            } catch (e) {
+                console.error(`[TextExtractor] Failed to stop subprocess: ${e.message}`);
+            }
+            this._subprocess = null;
+        }
+        
+        if (this._cancellable) {
+            this._cancellable = null;
+        }
+
         // Remove loading indicator if showing
         this._hideLoadingIndicator();
         
@@ -78,7 +95,6 @@ export default class TextExtractorExtension extends Extension {
         if (!dir.query_exists(null)) {
             try {
                 dir.make_directory_with_parents(null);
-                console.log(`[TextExtractor] Created directory: ${this._screenshotDir}`);
             } catch (e) {
                 console.error(`[TextExtractor] Failed to create directory: ${e.message}`);
             }
@@ -93,20 +109,15 @@ export default class TextExtractorExtension extends Extension {
             Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
             this._onShortcutPressed.bind(this)
         );
-        console.log('[TextExtractor] Keybinding registered');
     }
 
     _unregisterKeybinding() {
         Main.wm.removeKeybinding('shortcut');
-        console.log('[TextExtractor] Keybinding unregistered');
     }
 
     _onShortcutPressed() {
-        console.log('[TextExtractor] Shortcut pressed');
-        
         // Prevent triggering while already processing
         if (this._isProcessing) {
-            console.log('[TextExtractor] Already processing, ignoring shortcut');
             return;
         }
         
@@ -131,9 +142,7 @@ export default class TextExtractorExtension extends Extension {
             const token = `textextractor${this._requestCounter}`;
             const sender = Gio.DBus.session.get_unique_name().substring(1).replace(/\./g, '_');
             const requestPath = `/org/freedesktop/portal/desktop/request/${sender}/${token}`;
-            
-            console.log(`[TextExtractor] Request path: ${requestPath}`);
-            
+
             // Set up response listener BEFORE making the call
             const result = await new Promise((resolve, reject) => {
                 let signalId = null;
@@ -163,20 +172,17 @@ export default class TextExtractorExtension extends Extension {
                         
                         try {
                             const [response, results] = parameters.recursiveUnpack();
-                            console.log(`[TextExtractor] Portal response code: ${response}`);
                             
                             if (response === 0) {
                                 // Success - get the URI
                                 const uri = results['uri'];
                                 if (uri) {
-                                    console.log(`[TextExtractor] Got URI: ${uri}`);
                                     resolve(uri);
                                 } else {
                                     reject(new Error('No URI in response'));
                                 }
                             } else if (response === 1) {
                                 // User cancelled
-                                console.log('[TextExtractor] User cancelled screenshot');
                                 resolve(null);
                             } else {
                                 reject(new Error(`Portal returned error code: ${response}`));
@@ -189,6 +195,9 @@ export default class TextExtractorExtension extends Extension {
                 );
                 
                 // Timeout after 120 seconds (user might take time selecting)
+                if (timeoutId) {
+                    GLib.source_remove(timeoutId);
+                }
                 timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 120, () => {
                     timeoutId = null;
                     cleanup();
@@ -231,7 +240,6 @@ export default class TextExtractorExtension extends Extension {
                     (connection, res) => {
                         try {
                             connection.call_finish(res);
-                            console.log('[TextExtractor] Screenshot request sent successfully');
                         } catch (e) {
                             cleanup();
                             console.error(`[TextExtractor] DBus call error: ${e.message}`);
@@ -242,7 +250,6 @@ export default class TextExtractorExtension extends Extension {
             });
             
             if (!result) {
-                console.log('[TextExtractor] Screenshot cancelled by user');
                 this._isProcessing = false;
                 return;
             }
@@ -257,7 +264,6 @@ export default class TextExtractorExtension extends Extension {
             
             try {
                 srcFile.copy(destFile, Gio.FileCopyFlags.OVERWRITE, null, null);
-                console.log(`[TextExtractor] Screenshot saved to: ${destPath}`);
             } catch (copyErr) {
                 console.error(`[TextExtractor] Failed to copy screenshot: ${copyErr.message}`);
                 // Continue with original file
@@ -276,25 +282,29 @@ export default class TextExtractorExtension extends Extension {
 
     async _runOCR(imagePath) {
         try {
-            const ocrHelperPath = GLib.build_filenamev([this.path, 'ocr_helper.py']);
+            // Use system-wide installed OCR helper script
+            const ocrHelperPath = GLib.find_program_in_path('text-extractor-ocr');
             const ocrLanguage = this._settings.get_string('ocr-language');
             
-            // Check if OCR helper exists
-            if (!GLib.file_test(ocrHelperPath, GLib.FileTest.EXISTS)) {
+            // Check if OCR helper exists in PATH
+            if (!ocrHelperPath) {
                 this._hideLoadingIndicator();
                 this._isProcessing = false;
-                this._showNotification('OCR Error', 'OCR helper script not found.');
+                this._showNotification('OCR Error', 'text-extractor-ocr not found in PATH. Please install dependencies.');
                 return;
             }
             
+            // Create a new cancellable for this subprocess
+            this._cancellable = new Gio.Cancellable();
+
             // Run OCR helper script
-            const proc = Gio.Subprocess.new(
-                ['python3', ocrHelperPath, imagePath, ocrLanguage],
+            this._subprocess = Gio.Subprocess.new(
+                [ocrHelperPath, imagePath, ocrLanguage],
                 Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
             );
             
             const [stdout, stderr] = await new Promise((resolve, reject) => {
-                proc.communicate_utf8_async(null, null, (subprocess, result) => {
+                this._subprocess.communicate_utf8_async(null, this._cancellable, (subprocess, result) => {
                     try {
                         const [, stdoutStr, stderrStr] = subprocess.communicate_utf8_finish(result);
                         resolve([stdoutStr, stderrStr]);
@@ -306,8 +316,10 @@ export default class TextExtractorExtension extends Extension {
             
             // Hide loading indicator
             this._hideLoadingIndicator();
-            
-            console.log(`[TextExtractor] OCR stdout length: ${stdout ? stdout.length : 0}`);
+
+            // Clear cancellable and subprocess references
+            this._cancellable = null;
+            this._subprocess = null;
             
             if (stdout && stdout.trim()) {
                 try {
@@ -336,7 +348,6 @@ export default class TextExtractorExtension extends Extension {
                                 'Text Extracted',
                                 `${lineCount} line(s), ${charCount} characters copied to clipboard`
                             );
-                            console.log(`[TextExtractor] Copied ${lineCount} lines to clipboard`);
                         } else {
                             this._showNotification('No Text Found', 'No text detected in the selected area');
                         }
@@ -359,6 +370,8 @@ export default class TextExtractorExtension extends Extension {
             this._isProcessing = false;
             
         } catch (e) {
+            this._cancellable = null;
+            this._subprocess = null;
             console.error(`[TextExtractor] OCR error: ${e.message}`);
             this._hideLoadingIndicator();
             this._isProcessing = false;
@@ -373,7 +386,6 @@ export default class TextExtractorExtension extends Extension {
                 const file = Gio.File.new_for_path(imagePath);
                 if (file.query_exists(null)) {
                     file.delete(null);
-                    console.log(`[TextExtractor] Screenshot deleted: ${imagePath}`);
                 }
             } catch (e) {
                 console.error(`[TextExtractor] Failed to delete screenshot: ${e.message}`);
@@ -424,7 +436,4 @@ export default class TextExtractorExtension extends Extension {
         }
     }
 
-    getSettings() {
-        return super.getSettings('org.gnome.shell.extensions.text-extractor');
-    }
 }

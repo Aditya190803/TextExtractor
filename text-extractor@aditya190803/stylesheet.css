@@ -1,8 +1,0 @@
-/* Loading indicator */
-.text-extractor-loading {
-    background-color: rgba(0, 0, 0, 0.85);
-    border-radius: 12px;
-    padding: 16px 28px;
-    color: white;
-    font-size: 14px;
-}

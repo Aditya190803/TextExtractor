@@ -4,8 +4,7 @@
 
 EXTENSION_UUID="text-extractor@aditya190803"
 EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/$EXTENSION_UUID"
-SOURCE_DIR="text-extractor@aditya190803"
-BUILD_DIR="build"
+SOURCE_DIR="build"
 
 echo "Installing Text Extractor Extension..."
 
@@ -47,41 +46,53 @@ fi
 # --- Build Step ---
 echo "Building extension..."
 
-# Compile GSettings schema
-echo "Compiling GSettings schema..."
-if [ -d "$SOURCE_DIR/schemas" ]; then
-    glib-compile-schemas "$SOURCE_DIR/schemas/"
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to compile GSettings schema"
-        exit 1
-    fi
-fi
-
-# Create build directory and zip package (optional, for distribution)
+# Create distribution package (optional, for distribution)
 echo "Creating distribution package..."
-rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR"
-cp -r "$SOURCE_DIR"/* "$BUILD_DIR/"
-chmod +x "$BUILD_DIR/ocr_helper.py"
-
-if command -v zip &> /dev/null; then
-    cd "$BUILD_DIR"
-    zip -r "../$EXTENSION_UUID.zip" ./*
-    cd ..
-    echo "Package created: $EXTENSION_UUID.zip"
+if [ -d "$SOURCE_DIR" ]; then
+    if command -v zip &> /dev/null; then
+        (cd "$SOURCE_DIR" && zip -r "../$EXTENSION_UUID.zip" .)
+        echo "Package created: $EXTENSION_UUID.zip"
+    else
+        echo "WARNING: 'zip' command not found. Skipping package creation."
+    fi
 else
-    echo "WARNING: 'zip' command not found. Skipping package creation."
+    echo "Error: Source directory '$SOURCE_DIR' not found."
+    exit 1
 fi
 
 # --- Install Step ---
 echo "Installing extension to $EXTENSION_DIR..."
 mkdir -p "$EXTENSION_DIR"
 
-# Copy files
-cp -r "$SOURCE_DIR"/* "$EXTENSION_DIR/"
+# Copy extension files (excluding ocr_helper.py)
+for file in "$SOURCE_DIR"/*; do
+    basename_file=$(basename "$file")
+    if [ "$basename_file" != "ocr_helper.py" ]; then
+        cp -r "$file" "$EXTENSION_DIR/"
+    fi
+done
 
-# Make OCR helper executable
-chmod +x "$EXTENSION_DIR/ocr_helper.py"
+# Install OCR helper as system-wide script
+echo "Installing OCR helper script..."
+BIN_DIR="$HOME/.local/bin"
+mkdir -p "$BIN_DIR"
+cp "$SOURCE_DIR/ocr_helper.py" "$BIN_DIR/text-extractor-ocr"
+chmod +x "$BIN_DIR/text-extractor-ocr"
+
+# Check if ~/.local/bin is in PATH
+if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
+    echo ""
+    echo "WARNING: $BIN_DIR is not in your PATH."
+    echo "Add it by running:"
+    echo "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"
+    echo "  source ~/.bashrc"
+    echo ""
+fi
+
+# Compile schemas in the installation directory
+if [ -d "$EXTENSION_DIR/schemas" ]; then
+    glib-compile-schemas "$EXTENSION_DIR/schemas/"
+fi
 
 echo ""
 echo "Installation complete!"

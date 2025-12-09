@@ -59,6 +59,17 @@ chmod +x install.sh
 ./install.sh
 ```
 
+The installation script will:
+- Install the extension to `~/.local/share/gnome-shell/extensions/`
+- Install the OCR helper script to `~/.local/bin/text-extractor-ocr` (as a system dependency)
+- Compile GSettings schemas
+
+**Note**: Make sure `~/.local/bin` is in your PATH. If not, add it:
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
 ### 3. Enable Extension
 
 ```bash
@@ -140,24 +151,27 @@ Or manually:
 ```bash
 gnome-extensions disable text-extractor@aditya190803
 rm -rf ~/.local/share/gnome-shell/extensions/text-extractor@aditya190803
+rm ~/.local/bin/text-extractor-ocr
 ```
 
 ## Project Structure
 
 ```
 TextExtractor/
-├── text-extractor@aditya190803/
+├── build/                # Extension source files
 │   ├── extension.js      # Main extension logic
 │   ├── prefs.js          # Preferences UI
-│   ├── ocr_helper.py     # Python OCR script
+│   ├── ocr_helper.py     # Python OCR script (installed to ~/.local/bin)
 │   ├── stylesheet.css    # Styles
 │   ├── metadata.json     # Extension metadata
 │   └── schemas/          # GSettings schema
-├── install.sh
-├── uninstall.sh
+├── install.sh            # Installation script
+├── uninstall.sh          # Uninstallation script
 ├── LICENSE
 └── README.md
 ```
+
+**Note**: The `ocr_helper.py` script is installed as a system-wide dependency at `~/.local/bin/text-extractor-ocr` and is not bundled with the extension package, following [EGO Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html#scripts-and-binaries).
 
 ## License
 

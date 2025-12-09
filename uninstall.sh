@@ -18,6 +18,14 @@ else
     echo "Extension directory not found at $EXTENSION_DIR"
 fi
 
+# Remove OCR helper script
+BIN_DIR="$HOME/.local/bin"
+OCR_HELPER="$BIN_DIR/text-extractor-ocr"
+if [ -f "$OCR_HELPER" ]; then
+    rm "$OCR_HELPER"
+    echo "OCR helper script removed from $BIN_DIR"
+fi
+
 echo ""
 echo "Uninstallation complete!"
 echo "Please restart GNOME Shell to complete the removal."
