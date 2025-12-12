@@ -100,12 +100,12 @@ if (this._subprocess) {
 ## Common Tasks
 
 ### Add new language
-1. Update language list in `prefs.js` (line 79-94)
+1. Update language list array in `prefs.js` (lines 79-94, add to `langCodes` array)
 2. User installs Tesseract language pack: `sudo apt install tesseract-ocr-<code>`
 
 ### Modify OCR behavior
 - Edit `build/ocr_helper.py` → reinstall via `./install.sh`
-- Extension calls helper at `extension.js:286` via `Gio.Subprocess`
+- Extension spawns helper at `extension.js:301` via `Gio.Subprocess.new()`
 
 ### Change screenshot location
 - Modify `_ensureScreenshotDir()` in `extension.js:89-102`
