@@ -257,20 +257,42 @@ export default class TextExtractorExtension extends Extension {
             // Show processing indicator
             this._showLoadingIndicator('Extracting text...');
             
-            // Copy screenshot to our folder
+            // Move screenshot into our folder and clean up the portal's copy so
+            // we don't leave clutter in the default screenshots directory.
             const srcFile = Gio.File.new_for_uri(result);
             const destPath = GLib.build_filenamev([this._screenshotDir, this._generateFilename()]);
             const destFile = Gio.File.new_for_path(destPath);
-            
+            let finalPath = destPath;
+
             try {
-                srcFile.copy(destFile, Gio.FileCopyFlags.OVERWRITE, null, null);
-            } catch (copyErr) {
-                console.error(`[TextExtractor] Failed to copy screenshot: ${copyErr.message}`);
-                // Continue with original file
+                // Prefer move to avoid duplicates; fall back to copy.
+                srcFile.move(destFile, Gio.FileCopyFlags.OVERWRITE, null, null);
+            } catch (moveErr) {
+                try {
+                    srcFile.copy(destFile, Gio.FileCopyFlags.OVERWRITE, null, null);
+                    // Remove the portal-created file once we have our copy.
+                    try {
+                        srcFile.delete(null);
+                    } catch (deleteErr) {
+                        console.error(`[TextExtractor] Failed to delete portal screenshot: ${deleteErr.message}`);
+                    }
+                } catch (copyErr) {
+                    console.error(`[TextExtractor] Failed to copy screenshot: ${copyErr.message}`);
+                    finalPath = srcFile.get_path();
+                }
             }
             
-            // Run OCR on the screenshot
-            await this._runOCR(destFile.query_exists(null) ? destPath : srcFile.get_path());
+            // Fallback to source path if move/copy failed for any reason
+            if (!finalPath) {
+                finalPath = srcFile.get_path();
+            }
+
+            if (!finalPath) {
+                throw new Error('No valid screenshot path found after capture');
+            }
+
+            // Run OCR on the screenshot (either moved copy or original path)
+            await this._runOCR(finalPath);
             
         } catch (e) {
             console.error(`[TextExtractor] Portal screenshot error: ${e.message}`);
