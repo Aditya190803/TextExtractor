@@ -79,14 +79,37 @@ mkdir -p "$BIN_DIR"
 cp "$SOURCE_DIR/ocr_helper.py" "$BIN_DIR/text-extractor-ocr"
 chmod +x "$BIN_DIR/text-extractor-ocr"
 
-# Check if ~/.local/bin is in PATH
+# Ensure ~/.local/bin is available in PATH for current session and future shells
+PATH_UPDATED=0
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
-    echo ""
-    echo "WARNING: $BIN_DIR is not in your PATH."
-    echo "Add it by running:"
-    echo "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"
-    echo "  source ~/.bashrc"
-    echo ""
+    export PATH="$BIN_DIR:$PATH"
+    PATH_UPDATED=1
+fi
+
+# Persist PATH updates for common shells
+PATH_SNIPPET='export PATH="$HOME/.local/bin:$PATH"'
+UPDATED_FILES=()
+for rc_file in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
+    if [ -f "$rc_file" ]; then
+        if ! grep -Fxq "$PATH_SNIPPET" "$rc_file"; then
+            echo "$PATH_SNIPPET" >> "$rc_file"
+            UPDATED_FILES+=("$(basename "$rc_file")")
+        fi
+    else
+        echo "$PATH_SNIPPET" >> "$rc_file"
+        UPDATED_FILES+=("$(basename "$rc_file")")
+    fi
+done
+
+if [[ $PATH_UPDATED -eq 1 ]]; then
+    echo "Added $BIN_DIR to PATH for this session."
+fi
+
+if [[ ${#UPDATED_FILES[@]} -gt 0 ]]; then
+    echo "Persisted PATH update in: ${UPDATED_FILES[*]}"
+    echo "Log out and back in (or restart GNOME Shell) so the extension sees text-extractor-ocr."
+else
+    echo "$BIN_DIR already in PATH for future shells."
 fi
 
 # Compile schemas in the installation directory
