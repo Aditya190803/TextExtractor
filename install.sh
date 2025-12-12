@@ -8,39 +8,76 @@ SOURCE_DIR="build"
 
 echo "Installing Text Extractor Extension..."
 
-# Check for required dependencies
-echo "Checking dependencies..."
+# --- Dependency install (system + Python) ---
 
-# Check for Tesseract
-if ! command -v tesseract &> /dev/null; then
-    echo "WARNING: Tesseract OCR is not installed."
-    echo "Please install it using:"
-    echo "  Ubuntu/Debian: sudo apt install tesseract-ocr tesseract-ocr-eng"
-    echo "  Fedora: sudo dnf install tesseract tesseract-langpack-eng"
-    echo "  Arch: sudo pacman -S tesseract tesseract-data-eng"
-    echo ""
-fi
+PKG_MANAGER=""
+SUDO_CMD=""
 
-# Check for Python3 and required modules
-if ! command -v python3 &> /dev/null; then
+detect_pkg_manager() {
+    if command -v apt-get >/dev/null 2>&1; then
+        PKG_MANAGER="apt"
+    elif command -v dnf >/dev/null 2>&1; then
+        PKG_MANAGER="dnf"
+    elif command -v pacman >/dev/null 2>&1; then
+        PKG_MANAGER="pacman"
+    else
+        PKG_MANAGER=""
+    fi
+}
+
+prepare_sudo() {
+    if [ "$EUID" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
+        SUDO_CMD="sudo"
+    fi
+}
+
+install_system_deps() {
+    case "$PKG_MANAGER" in
+        apt)
+            $SUDO_CMD apt-get update -y && \
+            $SUDO_CMD apt-get install -y tesseract-ocr tesseract-ocr-eng python3 python3-pip zip ;;
+        dnf)
+            $SUDO_CMD dnf install -y tesseract tesseract-langpack-eng python3 python3-pip zip ;;
+        pacman)
+            $SUDO_CMD pacman -Sy --noconfirm tesseract tesseract-data-eng python python-pip zip ;;
+        *)
+            echo "WARNING: No supported package manager detected. Install Tesseract, python3, python3-pip, and zip manually.";
+            return 1 ;;
+    esac
+}
+
+ensure_python_module() {
+    local module_name="$1"
+    local pip_name="$2"
+    python3 - <<EOF 2>/dev/null
+import $module_name
+EOF
+    if [ $? -ne 0 ]; then
+        if command -v pip3 >/dev/null 2>&1; then
+            echo "Installing Python module $pip_name (user scope)..."
+            pip3 install --user "$pip_name"
+        else
+            echo "ERROR: pip3 not found. Please install python3-pip."
+            return 1
+        fi
+    fi
+}
+
+echo "Checking and installing dependencies..."
+detect_pkg_manager
+prepare_sudo
+install_system_deps || true
+
+if ! command -v python3 >/dev/null 2>&1; then
     echo "ERROR: Python3 is required but not installed."
     exit 1
 fi
 
-# Check for pytesseract
-python3 -c "import pytesseract" 2>/dev/null
-if [ $? -ne 0 ]; then
-    echo "WARNING: pytesseract Python module is not installed."
-    echo "Please install it using: pip3 install pytesseract Pillow"
-    echo ""
-fi
+ensure_python_module "pytesseract" "pytesseract"
+ensure_python_module "PIL" "Pillow"
 
-# Check for PIL/Pillow
-python3 -c "from PIL import Image" 2>/dev/null
-if [ $? -ne 0 ]; then
-    echo "WARNING: Pillow Python module is not installed."
-    echo "Please install it using: pip3 install Pillow"
-    echo ""
+if ! command -v tesseract >/dev/null 2>&1; then
+    echo "WARNING: Tesseract OCR binary not found after install. Please install it manually."
 fi
 
 # --- Build Step ---
