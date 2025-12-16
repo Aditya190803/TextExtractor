@@ -32,6 +32,7 @@ export default class TextExtractorExtension extends Extension {
         this._screenshotDir = null;
         this._cancellable = null;
         this._subprocess = null;
+        this._portalTimeoutId = null;
     }
 
     enable() {
@@ -51,23 +52,12 @@ export default class TextExtractorExtension extends Extension {
     }
 
     disable() {
-        // Cancel subprocess properly before force exit
-        if (this._cancellable && !this._cancellable.is_cancelled()) {
-            this._cancellable.cancel();
-        }
-        
-        if (this._subprocess) {
-            try {
-                // Wait briefly for graceful cancellation
-                this._subprocess.force_exit();
-            } catch (e) {
-                console.error(`[TextExtractor] Failed to stop subprocess: ${e.message}`);
-            }
-            this._subprocess = null;
-        }
-        
-        if (this._cancellable) {
-            this._cancellable = null;
+        this._cancellable?.cancel();
+        this._cancellable = null;
+
+        if (this._portalTimeoutId) {
+            GLib.source_remove(this._portalTimeoutId);
+            this._portalTimeoutId = null;
         }
 
         // Remove loading indicator if showing
@@ -146,12 +136,11 @@ export default class TextExtractorExtension extends Extension {
             // Set up response listener BEFORE making the call
             const result = await new Promise((resolve, reject) => {
                 let signalId = null;
-                let timeoutId = null;
                 
                 const cleanup = () => {
-                    if (timeoutId) {
-                        GLib.source_remove(timeoutId);
-                        timeoutId = null;
+                    if (this._portalTimeoutId) {
+                        GLib.source_remove(this._portalTimeoutId);
+                        this._portalTimeoutId = null;
                     }
                     if (signalId) {
                         Gio.DBus.session.signal_unsubscribe(signalId);
@@ -195,11 +184,11 @@ export default class TextExtractorExtension extends Extension {
                 );
                 
                 // Timeout after 120 seconds (user might take time selecting)
-                if (timeoutId) {
-                    GLib.source_remove(timeoutId);
+                if (this._portalTimeoutId) {
+                    GLib.source_remove(this._portalTimeoutId);
                 }
-                timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 120, () => {
-                    timeoutId = null;
+                this._portalTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 120, () => {
+                    this._portalTimeoutId = null;
                     cleanup();
                     reject(new Error('Screenshot request timed out'));
                     return GLib.SOURCE_REMOVE;
@@ -324,6 +313,7 @@ export default class TextExtractorExtension extends Extension {
                 [ocrHelperPath, imagePath, ocrLanguage],
                 Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
             );
+            this._cancellable.connect(() => this._subprocess.force_exit());
             
             const [stdout, stderr] = await new Promise((resolve, reject) => {
                 this._subprocess.communicate_utf8_async(null, this._cancellable, (subprocess, result) => {
