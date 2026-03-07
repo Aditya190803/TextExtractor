@@ -2,9 +2,13 @@
 
 # Install & Build script for Text Extractor GNOME Extension
 
+set -u
+
 EXTENSION_UUID="text-extractor@aditya190803"
 EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/$EXTENSION_UUID"
 SOURCE_DIR="build"
+BIN_DIR="$HOME/.local/bin"
+OCR_HELPER="$BIN_DIR/text-extractor-ocr"
 
 echo "Installing Text Extractor Extension..."
 
@@ -31,15 +35,23 @@ prepare_sudo() {
     fi
 }
 
+run_with_optional_sudo() {
+    if [ -n "$SUDO_CMD" ]; then
+        "$SUDO_CMD" "$@"
+    else
+        "$@"
+    fi
+}
+
 install_system_deps() {
     case "$PKG_MANAGER" in
         apt)
-            $SUDO_CMD apt-get update -y && \
-            $SUDO_CMD apt-get install -y tesseract-ocr tesseract-ocr-eng python3 python3-pip zip ;;
+            run_with_optional_sudo apt-get update -y && \
+            run_with_optional_sudo apt-get install -y tesseract-ocr tesseract-ocr-eng python3 python3-pip zip ;;
         dnf)
-            $SUDO_CMD dnf install -y tesseract tesseract-langpack-eng python3 python3-pip zip ;;
+            run_with_optional_sudo dnf install -y tesseract tesseract-langpack-eng python3 python3-pip zip ;;
         pacman)
-            $SUDO_CMD pacman -Sy --noconfirm tesseract tesseract-data-eng python python-pip zip ;;
+            run_with_optional_sudo pacman -Sy --noconfirm tesseract tesseract-data-eng python python-pip zip ;;
         *)
             echo "WARNING: No supported package manager detected. Install Tesseract, python3, python3-pip, and zip manually.";
             return 1 ;;
@@ -53,31 +65,61 @@ ensure_python_module() {
 import $module_name
 EOF
     if [ $? -ne 0 ]; then
-        if command -v pip3 >/dev/null 2>&1; then
+        if python3 -m pip --version >/dev/null 2>&1; then
             echo "Installing Python module $pip_name (user scope)..."
-            pip3 install --user "$pip_name"
+            python3 -m pip install --user "$pip_name"
         else
-            echo "ERROR: pip3 not found. Please install python3-pip."
+            echo "ERROR: python3-pip not found. Please install python3-pip."
             return 1
         fi
     fi
 }
 
+install_ocr_helper() {
+    mkdir -p "$BIN_DIR"
+    cp "$SOURCE_DIR/ocr_helper.py" "$OCR_HELPER"
+    chmod +x "$OCR_HELPER"
+
+    if command -v text-extractor-ocr >/dev/null 2>&1; then
+        echo "OCR helper is available on PATH."
+        return 0
+    fi
+
+    if [ -n "$SUDO_CMD" ] || [ "$EUID" -eq 0 ]; then
+        echo "Creating system launcher in /usr/local/bin..."
+        run_with_optional_sudo tee /usr/local/bin/text-extractor-ocr >/dev/null <<EOF
+#!/bin/sh
+exec "$OCR_HELPER" "\$@"
+EOF
+        run_with_optional_sudo chmod 755 /usr/local/bin/text-extractor-ocr
+        echo "OCR helper is available system-wide via /usr/local/bin/text-extractor-ocr."
+        return 0
+    fi
+
+    echo "Installed OCR helper to $OCR_HELPER."
+    echo "GNOME Shell will use the absolute path automatically even if ~/.local/bin is not in PATH."
+}
+
 echo "Checking and installing dependencies..."
 detect_pkg_manager
 prepare_sudo
-install_system_deps || true
+
+if ! install_system_deps; then
+    echo "Continuing with extension install, but system dependencies may still be missing."
+fi
 
 if ! command -v python3 >/dev/null 2>&1; then
     echo "ERROR: Python3 is required but not installed."
     exit 1
 fi
 
-ensure_python_module "pytesseract" "pytesseract"
-ensure_python_module "PIL" "Pillow"
+ensure_python_module "pytesseract" "pytesseract" || exit 1
+ensure_python_module "PIL" "Pillow" || exit 1
 
 if ! command -v tesseract >/dev/null 2>&1; then
-    echo "WARNING: Tesseract OCR binary not found after install. Please install it manually."
+    echo "ERROR: Tesseract OCR binary is still not available after dependency installation."
+    echo "Install it manually, then re-run this script."
+    exit 1
 fi
 
 # --- Build Step ---
@@ -109,45 +151,9 @@ for file in "$SOURCE_DIR"/*; do
     fi
 done
 
-# Install OCR helper as system-wide script
+# Install OCR helper
 echo "Installing OCR helper script..."
-BIN_DIR="$HOME/.local/bin"
-mkdir -p "$BIN_DIR"
-cp "$SOURCE_DIR/ocr_helper.py" "$BIN_DIR/text-extractor-ocr"
-chmod +x "$BIN_DIR/text-extractor-ocr"
-
-# Ensure ~/.local/bin is available in PATH for current session and future shells
-PATH_UPDATED=0
-if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
-    export PATH="$BIN_DIR:$PATH"
-    PATH_UPDATED=1
-fi
-
-# Persist PATH updates for common shells
-PATH_SNIPPET='export PATH="$HOME/.local/bin:$PATH"'
-UPDATED_FILES=()
-for rc_file in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
-    if [ -f "$rc_file" ]; then
-        if ! grep -Fxq "$PATH_SNIPPET" "$rc_file"; then
-            echo "$PATH_SNIPPET" >> "$rc_file"
-            UPDATED_FILES+=("$(basename "$rc_file")")
-        fi
-    else
-        echo "$PATH_SNIPPET" >> "$rc_file"
-        UPDATED_FILES+=("$(basename "$rc_file")")
-    fi
-done
-
-if [[ $PATH_UPDATED -eq 1 ]]; then
-    echo "Added $BIN_DIR to PATH for this session."
-fi
-
-if [[ ${#UPDATED_FILES[@]} -gt 0 ]]; then
-    echo "Persisted PATH update in: ${UPDATED_FILES[*]}"
-    echo "Log out and back in (or restart GNOME Shell) so the extension sees text-extractor-ocr."
-else
-    echo "$BIN_DIR already in PATH for future shells."
-fi
+install_ocr_helper
 
 # Compile schemas in the installation directory
 if [ -d "$EXTENSION_DIR/schemas" ]; then

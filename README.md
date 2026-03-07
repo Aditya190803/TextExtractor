@@ -4,7 +4,7 @@ A GNOME Shell extension that extracts text from any area of your screen using OC
 
 ![GNOME Shell](https://img.shields.io/badge/GNOME%20Shell-48%20|%2049-blue)
 ![License](https://img.shields.io/badge/License-GPL--3.0-green)
-![Version](https://img.shields.io/badge/Version-1.0-orange)
+![Version](https://img.shields.io/badge/Version-1.1.0-orange)
 
 ## Features
 
@@ -30,27 +30,7 @@ A GNOME Shell extension that extracts text from any area of your screen using OC
 
 ## Installation
 
-### 1. Install Dependencies
-
-#### Ubuntu/Debian
-```bash
-sudo apt install tesseract-ocr tesseract-ocr-eng python3 python3-pip
-pip3 install pytesseract Pillow
-```
-
-#### Fedora
-```bash
-sudo dnf install tesseract tesseract-langpack-eng python3 python3-pip
-pip3 install pytesseract Pillow
-```
-
-#### Arch Linux
-```bash
-sudo pacman -S tesseract tesseract-data-eng python python-pip
-pip3 install pytesseract Pillow
-```
-
-### 2. Install Extension
+### 1. Install Extension
 
 ```bash
 git clone https://github.com/Aditya190803/TextExtractor.git
@@ -60,17 +40,14 @@ chmod +x install.sh
 ```
 
 The installation script will:
+- Install **Tesseract OCR** and Python dependencies automatically on Debian/Ubuntu, Fedora, and Arch
 - Install the extension to `~/.local/share/gnome-shell/extensions/`
-- Install the OCR helper script to `~/.local/bin/text-extractor-ocr` (as a system dependency)
+- Install the OCR helper script automatically and make it available to GNOME Shell
 - Compile GSettings schemas
 
-**Note**: Make sure `~/.local/bin` is in your PATH. If not, add it:
-```bash
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-```
+If your distribution is not supported by the installer, install `tesseract`, `python3`, `python3-pip`, and `zip` manually first, then run `./install.sh` again.
 
-### 3. Enable Extension
+### 2. Enable Extension
 
 ```bash
 # On X11: Press Alt+F2, type 'r', press Enter

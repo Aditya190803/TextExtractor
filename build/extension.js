@@ -105,6 +105,22 @@ export default class TextExtractorExtension extends Extension {
         Main.wm.removeKeybinding('shortcut');
     }
 
+    _getOcrHelperPath() {
+        const pathFromEnv = GLib.find_program_in_path('text-extractor-ocr');
+        if (pathFromEnv) {
+            return pathFromEnv;
+        }
+
+        const homeDir = GLib.get_home_dir();
+        const fallbackPaths = [
+            GLib.build_filenamev([homeDir, '.local', 'bin', 'text-extractor-ocr']),
+            '/usr/local/bin/text-extractor-ocr',
+            '/usr/bin/text-extractor-ocr',
+        ];
+
+        return fallbackPaths.find(path => GLib.file_test(path, GLib.FileTest.IS_EXECUTABLE)) ?? null;
+    }
+
     _onShortcutPressed() {
         // Prevent triggering while already processing
         if (this._isProcessing) {
@@ -114,6 +130,15 @@ export default class TextExtractorExtension extends Extension {
         this._takePortalScreenshot();
     }
 
+    _shouldUseShellFallback(error) {
+        const message = error?.message ?? '';
+
+        return message.includes('org.freedesktop.DBus.Error.UnknownMethod') ||
+            message.includes('No such interface “org.freedesktop.portal.Screenshot”') ||
+            message.includes('No such interface "org.freedesktop.portal.Screenshot"') ||
+            message.includes('org.freedesktop.portal.Desktop was not provided');
+    }
+
     _generateFilename() {
         const now = new Date();
         const timestamp = now.toISOString()
@@ -121,6 +146,85 @@ export default class TextExtractorExtension extends Extension {
             .replace(/:/g, '-')
             .replace(/\..+/, '');
         return `text-extract-${timestamp}.png`;
+    }
+
+    async _takeShellScreenshot() {
+        return await new Promise((resolve, reject) => {
+            Gio.DBus.session.call(
+                'org.gnome.Shell.Screenshot',
+                '/org/gnome/Shell/Screenshot',
+                'org.gnome.Shell.Screenshot',
+                'InteractiveScreenshot',
+                null,
+                GLib.VariantType.new('(bs)'),
+                Gio.DBusCallFlags.NONE,
+                -1,
+                null,
+                (connection, res) => {
+                    try {
+                        const [success, uri] = connection.call_finish(res).recursiveUnpack();
+
+                        if (!success || !uri) {
+                            resolve(null);
+                            return;
+                        }
+
+                        resolve(uri);
+                    } catch (e) {
+                        reject(e);
+                    }
+                }
+            );
+        });
+    }
+
+    async _processScreenshotUri(result) {
+        if (!result) {
+            this._isProcessing = false;
+            return;
+        }
+
+        // Show processing indicator
+        this._showLoadingIndicator('Extracting text...');
+
+        // Move screenshot into our folder and clean up the original copy so we
+        // don't leave clutter in the default screenshots directory.
+        const srcFile = result.includes('://')
+            ? Gio.File.new_for_uri(result)
+            : Gio.File.new_for_path(result);
+        const destPath = GLib.build_filenamev([this._screenshotDir, this._generateFilename()]);
+        const destFile = Gio.File.new_for_path(destPath);
+        let finalPath = destPath;
+
+        try {
+            // Prefer move to avoid duplicates; fall back to copy.
+            srcFile.move(destFile, Gio.FileCopyFlags.OVERWRITE, null, null);
+        } catch (moveErr) {
+            try {
+                srcFile.copy(destFile, Gio.FileCopyFlags.OVERWRITE, null, null);
+                // Remove the original screenshot once we have our copy.
+                try {
+                    srcFile.delete(null);
+                } catch (deleteErr) {
+                    console.error(`[TextExtractor] Failed to delete screenshot: ${deleteErr.message}`);
+                }
+            } catch (copyErr) {
+                console.error(`[TextExtractor] Failed to copy screenshot: ${copyErr.message}`);
+                finalPath = srcFile.get_path();
+            }
+        }
+
+        // Fallback to source path if move/copy failed for any reason.
+        if (!finalPath) {
+            finalPath = srcFile.get_path();
+        }
+
+        if (!finalPath) {
+            throw new Error('No valid screenshot path found after capture');
+        }
+
+        // Run OCR on the screenshot (either moved copy or original path).
+        await this._runOCR(finalPath);
     }
 
     async _takePortalScreenshot() {
@@ -238,53 +342,19 @@ export default class TextExtractorExtension extends Extension {
                 );
             });
             
-            if (!result) {
-                this._isProcessing = false;
-                return;
-            }
-            
-            // Show processing indicator
-            this._showLoadingIndicator('Extracting text...');
-            
-            // Move screenshot into our folder and clean up the portal's copy so
-            // we don't leave clutter in the default screenshots directory.
-            const srcFile = Gio.File.new_for_uri(result);
-            const destPath = GLib.build_filenamev([this._screenshotDir, this._generateFilename()]);
-            const destFile = Gio.File.new_for_path(destPath);
-            let finalPath = destPath;
-
-            try {
-                // Prefer move to avoid duplicates; fall back to copy.
-                srcFile.move(destFile, Gio.FileCopyFlags.OVERWRITE, null, null);
-            } catch (moveErr) {
+            await this._processScreenshotUri(result);
+        } catch (e) {
+            if (this._shouldUseShellFallback(e)) {
                 try {
-                    srcFile.copy(destFile, Gio.FileCopyFlags.OVERWRITE, null, null);
-                    // Remove the portal-created file once we have our copy.
-                    try {
-                        srcFile.delete(null);
-                    } catch (deleteErr) {
-                        console.error(`[TextExtractor] Failed to delete portal screenshot: ${deleteErr.message}`);
-                    }
-                } catch (copyErr) {
-                    console.error(`[TextExtractor] Failed to copy screenshot: ${copyErr.message}`);
-                    finalPath = srcFile.get_path();
+                    const fallbackResult = await this._takeShellScreenshot();
+                    await this._processScreenshotUri(fallbackResult);
+                    return;
+                } catch (fallbackError) {
+                    e = fallbackError;
                 }
             }
-            
-            // Fallback to source path if move/copy failed for any reason
-            if (!finalPath) {
-                finalPath = srcFile.get_path();
-            }
 
-            if (!finalPath) {
-                throw new Error('No valid screenshot path found after capture');
-            }
-
-            // Run OCR on the screenshot (either moved copy or original path)
-            await this._runOCR(finalPath);
-            
-        } catch (e) {
-            console.error(`[TextExtractor] Portal screenshot error: ${e.message}`);
+            console.error(`[TextExtractor] Screenshot error: ${e.message}`);
             this._hideLoadingIndicator();
             this._isProcessing = false;
             this._showNotification('Screenshot Error', e.message);
@@ -293,15 +363,13 @@ export default class TextExtractorExtension extends Extension {
 
     async _runOCR(imagePath) {
         try {
-            // Use system-wide installed OCR helper script
-            const ocrHelperPath = GLib.find_program_in_path('text-extractor-ocr');
+            const ocrHelperPath = this._getOcrHelperPath();
             const ocrLanguage = this._settings.get_string('ocr-language');
             
-            // Check if OCR helper exists in PATH
             if (!ocrHelperPath) {
                 this._hideLoadingIndicator();
                 this._isProcessing = false;
-                this._showNotification('OCR Error', 'text-extractor-ocr not found in PATH. Please install dependencies.');
+                this._showNotification('OCR Error', 'text-extractor-ocr is not installed. Re-run install.sh to install the helper and Tesseract automatically.');
                 return;
             }
             

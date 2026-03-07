@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.0] - 2025-12-09
+## [1.1.0] - 2026-03-07
 
 ### Changed - EGO Review Compliance
 - **OCR Helper as System Dependency**: `ocr_helper.py` now installs to `~/.local/bin/text-extractor-ocr` instead of being bundled with the extension package, following [EGO Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html#scripts-and-binaries)

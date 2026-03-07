@@ -26,6 +26,19 @@ if [ -f "$OCR_HELPER" ]; then
     echo "OCR helper script removed from $BIN_DIR"
 fi
 
+SYSTEM_OCR_HELPER="/usr/local/bin/text-extractor-ocr"
+if [ -f "$SYSTEM_OCR_HELPER" ]; then
+    if [ "$EUID" -eq 0 ]; then
+        rm "$SYSTEM_OCR_HELPER"
+        echo "System OCR launcher removed from /usr/local/bin"
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo rm "$SYSTEM_OCR_HELPER"
+        echo "System OCR launcher removed from /usr/local/bin"
+    else
+        echo "System OCR launcher still exists at $SYSTEM_OCR_HELPER. Remove it manually if desired."
+    fi
+fi
+
 echo ""
 echo "Uninstallation complete!"
 echo "Please restart GNOME Shell to complete the removal."
