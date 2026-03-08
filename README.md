@@ -4,7 +4,7 @@ A GNOME Shell extension that extracts text from any area of your screen using OC
 
 ![GNOME Shell](https://img.shields.io/badge/GNOME%20Shell-48%20|%2049-blue)
 ![License](https://img.shields.io/badge/License-GPL--3.0-green)
-![Version](https://img.shields.io/badge/Version-1.1.0-orange)
+![Version](https://img.shields.io/badge/Version-1.2.0-orange)
 
 ## Features
 

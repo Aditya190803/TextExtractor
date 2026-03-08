@@ -129,7 +129,12 @@ echo "Building extension..."
 echo "Creating distribution package..."
 if [ -d "$SOURCE_DIR" ]; then
     if command -v zip &> /dev/null; then
-        (cd "$SOURCE_DIR" && zip -r "../$EXTENSION_UUID.zip" .)
+        rm -f "$EXTENSION_UUID.zip"
+        (
+            cd "$SOURCE_DIR" &&
+            zip -r "../$EXTENSION_UUID.zip" . \
+                -x "ocr_helper.py" "__pycache__/*" "__pycache__" "*.pyc"
+        )
         echo "Package created: $EXTENSION_UUID.zip"
     else
         echo "WARNING: 'zip' command not found. Skipping package creation."

@@ -22,6 +22,8 @@ import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
+const SHELL_SCREENSHOT_ONLY_MODE = 2;
+
 export default class TextExtractorExtension extends Extension {
     constructor(metadata) {
         super(metadata);
@@ -54,6 +56,8 @@ export default class TextExtractorExtension extends Extension {
     disable() {
         this._cancellable?.cancel();
         this._cancellable = null;
+
+        Main.screenshotUI?.disconnectObject(this);
 
         if (this._portalTimeoutId) {
             GLib.source_remove(this._portalTimeoutId);
@@ -126,8 +130,46 @@ export default class TextExtractorExtension extends Extension {
         if (this._isProcessing) {
             return;
         }
-        
-        this._takePortalScreenshot();
+
+        this._takeNativeScreenshot();
+    }
+
+    async _takeNativeScreenshot() {
+        this._isProcessing = true;
+
+        try {
+            const result = await new Promise((resolve, reject) => {
+                if (!Main.screenshotUI) {
+                    reject(new Error('GNOME Shell screenshot UI is unavailable'));
+                    return;
+                }
+
+                Main.screenshotUI.disconnectObject(this);
+                Main.screenshotUI.connectObject(
+                    'screenshot-taken', (_ui, file) => {
+                        Main.screenshotUI.disconnectObject(this);
+                        resolve(file?.get_uri?.() ?? null);
+                    },
+                    'closed', () => {
+                        Main.screenshotUI.disconnectObject(this);
+                        resolve(null);
+                    },
+                    this
+                );
+
+                Main.screenshotUI.open(SHELL_SCREENSHOT_ONLY_MODE).catch(error => {
+                    Main.screenshotUI.disconnectObject(this);
+                    reject(error);
+                });
+            });
+
+            await this._processScreenshotUri(result);
+        } catch (e) {
+            console.error(`[TextExtractor] Screenshot error: ${e.message}`);
+            this._hideLoadingIndicator();
+            this._isProcessing = false;
+            this._showNotification('Screenshot Error', e.message);
+        }
     }
 
     _shouldUseShellFallback(error) {

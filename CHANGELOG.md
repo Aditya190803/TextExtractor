@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-03-08
+
+### Added
+- Native GNOME Shell screenshot UI flow for GNOME Shell 48 and 49, avoiding environments where the desktop portal screenshot interface is unavailable
+
+### Changed
+- Release packaging now excludes the external OCR helper and Python cache files from the GNOME Extensions upload archive
+
+### Fixed
+- Screenshot UI signal cleanup now disconnects extension-owned handlers during shutdown and after screenshot completion
+
 ## [1.1.0] - 2026-03-07
 
 ### Changed - EGO Review Compliance
