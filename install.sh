@@ -47,11 +47,11 @@ install_system_deps() {
     case "$PKG_MANAGER" in
         apt)
             run_with_optional_sudo apt-get update -y && \
-            run_with_optional_sudo apt-get install -y tesseract-ocr tesseract-ocr-eng python3 python3-pip zip ;;
+            run_with_optional_sudo apt-get install -y tesseract-ocr tesseract-ocr-eng python3 python3-pip zip gettext ;;
         dnf)
-            run_with_optional_sudo dnf install -y tesseract tesseract-langpack-eng python3 python3-pip zip ;;
+            run_with_optional_sudo dnf install -y tesseract tesseract-langpack-eng python3 python3-pip zip gettext ;;
         pacman)
-            run_with_optional_sudo pacman -Sy --noconfirm tesseract tesseract-data-eng python python-pip zip ;;
+            run_with_optional_sudo pacman -Sy --noconfirm tesseract tesseract-data-eng python python-pip zip gettext ;;
         *)
             echo "WARNING: No supported package manager detected. Install Tesseract, python3, python3-pip, and zip manually.";
             return 1 ;;
@@ -124,6 +124,19 @@ fi
 
 # --- Build Step ---
 echo "Building extension..."
+
+# Compile translations into the source directory first
+if [ -d "po" ]; then
+    echo "Compiling translations..."
+    for po_file in po/*.po; do
+        if [ -f "$po_file" ]; then
+            lang=$(basename "$po_file" .po)
+            echo "Compiling $lang translation..."
+            mkdir -p "$SOURCE_DIR/locale/$lang/LC_MESSAGES"
+            msgfmt "$po_file" -o "$SOURCE_DIR/locale/$lang/LC_MESSAGES/text-extractor.mo"
+        fi
+    done
+fi
 
 # Create distribution package (optional, for distribution)
 echo "Creating distribution package..."

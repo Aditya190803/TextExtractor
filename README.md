@@ -86,6 +86,7 @@ Screenshots are saved to `~/Pictures/Screenshots/TextExtractor/`
 | Italian | `ita` | Korean | `kor` |
 | Portuguese | `por` | Arabic | `ara` |
 | Dutch | `nld` | Hindi | `hin` |
+| Turkish | `tur` | | |
 
 Install additional languages:
 ```bash
