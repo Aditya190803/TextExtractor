@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2026-03-22
+
+### Changed
+- Installer now detects the host Linux distro/package manager and installs Tesseract plus the Python OCR bindings from distro packages when available
+- README now reflects the distro-packaged Python OCR dependency model
+
+### Fixed
+- Removed the runtime fallback that tried to install `pytesseract` and `Pillow` with `pip` during installation
+
 ## [1.2.0] - 2026-03-08
 
 ### Added
