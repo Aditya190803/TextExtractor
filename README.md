@@ -26,7 +26,7 @@ A GNOME Shell extension that extracts text from any area of your screen using OC
 
 - **GNOME Shell 48 or 49**
 - **Tesseract OCR**
-- **Python 3** with `pytesseract` and `Pillow`
+- **Python 3** and the distro packages that provide `pytesseract` and `Pillow`
 
 ## Installation
 
@@ -40,12 +40,12 @@ chmod +x install.sh
 ```
 
 The installation script will:
-- Install **Tesseract OCR** and Python dependencies automatically on Debian/Ubuntu, Fedora, and Arch
+- Detect your Linux distro/package manager and install **Tesseract OCR** plus the Python OCR bindings from the distro packages
 - Install the extension to `~/.local/share/gnome-shell/extensions/`
 - Install the OCR helper script automatically and make it available to GNOME Shell
 - Compile GSettings schemas
 
-If your distribution is not supported by the installer, install `tesseract`, `python3`, `python3-pip`, and `zip` manually first, then run `./install.sh` again.
+If your distribution is not supported by the installer, install `tesseract`, the Python OCR bindings, and `zip` manually first, then run `./install.sh` again.
 
 ### 2. Enable Extension
 

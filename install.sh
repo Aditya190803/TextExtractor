@@ -10,6 +10,9 @@ SOURCE_DIR="build"
 BIN_DIR="$HOME/.local/bin"
 OCR_HELPER="$BIN_DIR/text-extractor-ocr"
 
+OS_ID=""
+OS_ID_LIKE=""
+
 echo "Installing Text Extractor Extension..."
 
 # --- Dependency install (system + Python) ---
@@ -17,13 +20,56 @@ echo "Installing Text Extractor Extension..."
 PKG_MANAGER=""
 SUDO_CMD=""
 
+read_os_release() {
+    if [ -r /etc/os-release ]; then
+        # shellcheck disable=SC1091
+        . /etc/os-release
+        OS_ID="${ID:-}"
+        OS_ID_LIKE="${ID_LIKE:-}"
+    fi
+}
+
 detect_pkg_manager() {
+    read_os_release
+
+    case "$OS_ID" in
+        ubuntu|debian|linuxmint|pop|elementary|zorin|kali|neon)
+            PKG_MANAGER="apt"
+            return 0 ;;
+        fedora|rhel|centos|rocky|almalinux|ol)
+            PKG_MANAGER="dnf"
+            return 0 ;;
+        arch|manjaro|endeavouros|garuda|cachyos)
+            PKG_MANAGER="pacman"
+            return 0 ;;
+        opensuse*|sles|sled)
+            PKG_MANAGER="zypper"
+            return 0 ;;
+    esac
+
+    case "$OS_ID_LIKE" in
+        *debian*)
+            PKG_MANAGER="apt"
+            return 0 ;;
+        *fedora*|*rhel*)
+            PKG_MANAGER="dnf"
+            return 0 ;;
+        *arch*)
+            PKG_MANAGER="pacman"
+            return 0 ;;
+        *suse*)
+            PKG_MANAGER="zypper"
+            return 0 ;;
+    esac
+
     if command -v apt-get >/dev/null 2>&1; then
         PKG_MANAGER="apt"
     elif command -v dnf >/dev/null 2>&1; then
         PKG_MANAGER="dnf"
     elif command -v pacman >/dev/null 2>&1; then
         PKG_MANAGER="pacman"
+    elif command -v zypper >/dev/null 2>&1; then
+        PKG_MANAGER="zypper"
     else
         PKG_MANAGER=""
     fi
@@ -43,35 +89,49 @@ run_with_optional_sudo() {
     fi
 }
 
+install_debian_packages() {
+    run_with_optional_sudo apt-get update -y && \
+    run_with_optional_sudo apt-get install -y tesseract-ocr tesseract-ocr-eng python3 python3-pytesseract python3-pil zip
+}
+
+install_fedora_packages() {
+    run_with_optional_sudo dnf install -y tesseract tesseract-langpack-eng python3 python3-pytesseract python3-pillow zip
+}
+
+install_arch_packages() {
+    run_with_optional_sudo pacman -Sy --noconfirm tesseract tesseract-data-eng python python-pytesseract python-pillow zip
+}
+
+install_suse_packages() {
+    run_with_optional_sudo zypper install -y tesseract tesseract-data-eng python3 python3-pytesseract python3-Pillow zip
+}
+
 install_system_deps() {
     case "$PKG_MANAGER" in
         apt)
-            run_with_optional_sudo apt-get update -y && \
-            run_with_optional_sudo apt-get install -y tesseract-ocr tesseract-ocr-eng python3 python3-pip zip ;;
+            install_debian_packages ;;
         dnf)
-            run_with_optional_sudo dnf install -y tesseract tesseract-langpack-eng python3 python3-pip zip ;;
+            install_fedora_packages ;;
         pacman)
-            run_with_optional_sudo pacman -Sy --noconfirm tesseract tesseract-data-eng python python-pip zip ;;
+            install_arch_packages ;;
+        zypper)
+            install_suse_packages ;;
         *)
-            echo "WARNING: No supported package manager detected. Install Tesseract, python3, python3-pip, and zip manually.";
+            echo "WARNING: No supported package manager detected. Install Tesseract, Python OCR bindings, and zip manually.";
             return 1 ;;
     esac
 }
 
-ensure_python_module() {
-    local module_name="$1"
-    local pip_name="$2"
-    python3 - <<EOF 2>/dev/null
-import $module_name
-EOF
-    if [ $? -ne 0 ]; then
-        if python3 -m pip --version >/dev/null 2>&1; then
-            echo "Installing Python module $pip_name (user scope)..."
-            python3 -m pip install --user "$pip_name"
-        else
-            echo "ERROR: python3-pip not found. Please install python3-pip."
-            return 1
-        fi
+ensure_runtime_tools() {
+    if ! command -v tesseract >/dev/null 2>&1; then
+        echo "ERROR: Tesseract OCR binary is still not available after dependency installation."
+        echo "Install it manually, then re-run this script."
+        return 1
+    fi
+
+    if ! command -v python3 >/dev/null 2>&1 && ! command -v python >/dev/null 2>&1 && ! command -v py >/dev/null 2>&1; then
+        echo "ERROR: Python is required but not installed."
+        return 1
     fi
 }
 
@@ -108,17 +168,7 @@ if ! install_system_deps; then
     echo "Continuing with extension install, but system dependencies may still be missing."
 fi
 
-if ! command -v python3 >/dev/null 2>&1; then
-    echo "ERROR: Python3 is required but not installed."
-    exit 1
-fi
-
-ensure_python_module "pytesseract" "pytesseract" || exit 1
-ensure_python_module "PIL" "Pillow" || exit 1
-
-if ! command -v tesseract >/dev/null 2>&1; then
-    echo "ERROR: Tesseract OCR binary is still not available after dependency installation."
-    echo "Install it manually, then re-run this script."
+if ! ensure_runtime_tools; then
     exit 1
 fi
 
