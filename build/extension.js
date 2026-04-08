@@ -10,7 +10,7 @@
  * 5. Text auto-copied to clipboard
  * 6. Notification shows result
  * 
- * Supported: GNOME Shell 48 and 49
+ * Supported: GNOME Shell 48, 49, and 50
  */
 
 import GLib from 'gi://GLib';
@@ -157,7 +157,7 @@ export default class TextExtractorExtension extends Extension {
                     this
                 );
 
-                Main.screenshotUI.open(SHELL_SCREENSHOT_ONLY_MODE).catch(error => {
+                this._openScreenshotUI(Main.screenshotUI).catch(error => {
                     Main.screenshotUI.disconnectObject(this);
                     reject(error);
                 });
@@ -169,6 +169,26 @@ export default class TextExtractorExtension extends Extension {
             this._hideLoadingIndicator();
             this._isProcessing = false;
             this._showNotification('Screenshot Error', e.message);
+        }
+    }
+
+    async _openScreenshotUI(screenshotUI) {
+        // GNOME Shell may change this method signature across releases.
+        // Try screenshot-only mode first, then retry without args.
+        try {
+            return await screenshotUI.open(SHELL_SCREENSHOT_ONLY_MODE);
+        } catch (error) {
+            const message = error?.message ?? '';
+            const maybeSignatureChange = error instanceof TypeError ||
+                message.includes('argument') ||
+                message.includes('Arguments') ||
+                message.includes('expected');
+
+            if (!maybeSignatureChange) {
+                throw error;
+            }
+
+            return await screenshotUI.open();
         }
     }
 

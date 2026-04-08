@@ -2,9 +2,9 @@
 
 A GNOME Shell extension that extracts text from any area of your screen using OCR (Optical Character Recognition).
 
-![GNOME Shell](https://img.shields.io/badge/GNOME%20Shell-48%20|%2049-blue)
+![GNOME Shell](https://img.shields.io/badge/GNOME%20Shell-48%20|%2049%20|%2050-blue)
 ![License](https://img.shields.io/badge/License-GPL--3.0-green)
-![Version](https://img.shields.io/badge/Version-1.2.1-orange)
+![Version](https://img.shields.io/badge/Version-1.2.2-orange)
 
 ## Features
 
@@ -24,7 +24,7 @@ A GNOME Shell extension that extracts text from any area of your screen using OC
 
 ## Requirements
 
-- **GNOME Shell 48 or 49**
+- **GNOME Shell 48, 49, or 50**
 - **Tesseract OCR**
 - **Python 3** and the distro packages that provide `pytesseract` and `Pillow`
 

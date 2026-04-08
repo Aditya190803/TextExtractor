@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.2] - 2026-04-08
+
+### Added
+- Declared GNOME Shell 50 support in extension metadata
+
+### Changed
+- Increased extension metadata version so GNOME extension update checks can detect this release
+- Added a compatibility fallback for screenshot UI invocation in case GNOME Shell API argument handling differs across releases
+
 ## [1.2.1] - 2026-03-22
 
 ### Changed
