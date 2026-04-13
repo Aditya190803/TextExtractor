@@ -23,6 +23,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const SHELL_SCREENSHOT_ONLY_MODE = 2;
+const DEBUG_LOGS = false;
 
 export default class TextExtractorExtension extends Extension {
     constructor(metadata) {
@@ -90,7 +91,7 @@ export default class TextExtractorExtension extends Extension {
             try {
                 dir.make_directory_with_parents(null);
             } catch (e) {
-                console.error(`[TextExtractor] Failed to create directory: ${e.message}`);
+                this._logError(`Failed to create directory: ${e.message}`);
             }
         }
     }
@@ -165,7 +166,7 @@ export default class TextExtractorExtension extends Extension {
 
             await this._processScreenshotUri(result);
         } catch (e) {
-            console.error(`[TextExtractor] Screenshot error: ${e.message}`);
+            this._logError(`Screenshot error: ${e.message}`);
             this._hideLoadingIndicator();
             this._isProcessing = false;
             this._showNotification('Screenshot Error', e.message);
@@ -268,10 +269,10 @@ export default class TextExtractorExtension extends Extension {
                 try {
                     srcFile.delete(null);
                 } catch (deleteErr) {
-                    console.error(`[TextExtractor] Failed to delete screenshot: ${deleteErr.message}`);
+                    this._logError(`Failed to delete screenshot: ${deleteErr.message}`);
                 }
             } catch (copyErr) {
-                console.error(`[TextExtractor] Failed to copy screenshot: ${copyErr.message}`);
+                this._logError(`Failed to copy screenshot: ${copyErr.message}`);
                 finalPath = srcFile.get_path();
             }
         }
@@ -343,7 +344,7 @@ export default class TextExtractorExtension extends Extension {
                                 reject(new Error(`Portal returned error code: ${response}`));
                             }
                         } catch (e) {
-                            console.error(`[TextExtractor] Error parsing response: ${e.message}`);
+                            this._logError(`Error parsing response: ${e.message}`);
                             reject(e);
                         }
                     }
@@ -397,7 +398,7 @@ export default class TextExtractorExtension extends Extension {
                             connection.call_finish(res);
                         } catch (e) {
                             cleanup();
-                            console.error(`[TextExtractor] DBus call error: ${e.message}`);
+                            this._logError(`DBus call error: ${e.message}`);
                             reject(e);
                         }
                     }
@@ -416,7 +417,7 @@ export default class TextExtractorExtension extends Extension {
                 }
             }
 
-            console.error(`[TextExtractor] Screenshot error: ${e.message}`);
+            this._logError(`Screenshot error: ${e.message}`);
             this._hideLoadingIndicator();
             this._isProcessing = false;
             this._showNotification('Screenshot Error', e.message);
@@ -480,29 +481,31 @@ export default class TextExtractorExtension extends Extension {
                         const allText = lines.map(line => line.text).join('\n');
                         
                         if (allText.trim()) {
-                            // Copy to clipboard
-                            St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, allText);
+                            // Copy to clipboard via external tool to avoid direct shell clipboard access.
+                            const copied = await this._copyTextToClipboard(allText);
                             
                             // Show success notification
                             const lineCount = lines.length;
                             const charCount = allText.length;
                             this._showNotification(
                                 'Text Extracted',
-                                `${lineCount} line(s), ${charCount} characters copied to clipboard`
+                                copied
+                                    ? `${lineCount} line(s), ${charCount} characters copied to clipboard`
+                                    : `${lineCount} line(s), ${charCount} characters extracted (clipboard tool not available)`
                             );
                         } else {
                             this._showNotification('No Text Found', 'No text detected in the selected area');
                         }
                     } else {
-                        console.error(`[TextExtractor] OCR error: ${ocrResult.error}`);
+                        this._logError(`OCR error: ${ocrResult.error}`);
                         this._showNotification('OCR Error', ocrResult.error || 'OCR processing failed');
                     }
                 } catch (parseError) {
-                    console.error(`[TextExtractor] Failed to parse OCR result: ${parseError.message}`);
+                    this._logError(`Failed to parse OCR result: ${parseError.message}`);
                     this._showNotification('OCR Error', 'Failed to parse OCR results');
                 }
             } else {
-                console.error(`[TextExtractor] OCR produced no output. stderr: ${stderr}`);
+                this._logError(`OCR produced no output. stderr: ${stderr}`);
                 this._showNotification('OCR Error', stderr || 'OCR produced no output');
             }
             
@@ -514,11 +517,49 @@ export default class TextExtractorExtension extends Extension {
         } catch (e) {
             this._cancellable = null;
             this._subprocess = null;
-            console.error(`[TextExtractor] OCR error: ${e.message}`);
+            this._logError(`OCR error: ${e.message}`);
             this._hideLoadingIndicator();
             this._isProcessing = false;
             this._showNotification('OCR Error', e.message);
         }
+    }
+
+    async _copyTextToClipboard(text) {
+        const clipboardTools = [
+            ['wl-copy'],
+            ['xclip', '-selection', 'clipboard'],
+            ['xsel', '--clipboard', '--input'],
+        ];
+
+        for (const command of clipboardTools) {
+            if (!GLib.find_program_in_path(command[0])) {
+                continue;
+            }
+
+            try {
+                const process = Gio.Subprocess.new(
+                    command,
+                    Gio.SubprocessFlags.STDIN_PIPE | Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
+                );
+
+                await new Promise((resolve, reject) => {
+                    process.communicate_utf8_async(text, null, (_proc, result) => {
+                        try {
+                            process.communicate_utf8_finish(result);
+                            resolve();
+                        } catch (error) {
+                            reject(error);
+                        }
+                    });
+                });
+
+                return true;
+            } catch (error) {
+                this._logError(`Clipboard command failed (${command[0]}): ${error.message}`);
+            }
+        }
+
+        return false;
     }
     
     _cleanupScreenshot(imagePath) {
@@ -530,8 +571,14 @@ export default class TextExtractorExtension extends Extension {
                     file.delete(null);
                 }
             } catch (e) {
-                console.error(`[TextExtractor] Failed to delete screenshot: ${e.message}`);
+                this._logError(`Failed to delete screenshot: ${e.message}`);
             }
+        }
+    }
+
+    _logError(message) {
+        if (DEBUG_LOGS) {
+            console.error(`[TextExtractor] ${message}`);
         }
     }
 
