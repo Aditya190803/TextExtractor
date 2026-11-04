@@ -3,10 +3,17 @@
   <schema id="org.gnome.shell.extensions.text-extractor" path="/org/gnome/shell/extensions/text-extractor/">
     
     <!-- Keyboard Shortcut -->
-    <key name="shortcut" type="as">
+    <key name="text-extractor-shortcut" type="as">
       <default>['&lt;Super&gt;&lt;Shift&gt;t']</default>
       <summary>Keyboard shortcut</summary>
       <description>Keyboard shortcut to trigger text extraction</description>
+    </key>
+
+    <!-- Retained only to migrate custom shortcuts from releases before 1.2.3. -->
+    <key name="shortcut" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;t']</default>
+      <summary>Legacy keyboard shortcut</summary>
+      <description>Deprecated shortcut setting retained for migration</description>
     </key>
     
     <!-- OCR Language -->

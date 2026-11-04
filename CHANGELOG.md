@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Namespaced the GNOME Shell keybinding as `text-extractor-shortcut` to avoid collisions with extensions such as Ubuntu Dock that also use the generic `shortcut` setting name
+- Preserved custom shortcuts by migrating the legacy setting on first use
+
 ## [1.2.2] - 2026-04-08
 
 ### Added
