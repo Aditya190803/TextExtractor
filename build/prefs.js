@@ -10,9 +10,13 @@ import Gio from 'gi://Gio';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
+const SHORTCUT_KEY = 'text-extractor-shortcut';
+const LEGACY_SHORTCUT_KEY = 'shortcut';
+
 export default class TextExtractorPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         const settings = this.getSettings();
+        this._migrateShortcutSetting(settings);
         
         // Create main page
         const page = new Adw.PreferencesPage({
@@ -35,7 +39,7 @@ export default class TextExtractorPreferences extends ExtensionPreferences {
         });
         
         const shortcutLabel = new Gtk.ShortcutLabel({
-            accelerator: settings.get_strv('shortcut')[0] || '<Super><Shift>t',
+            accelerator: settings.get_strv(SHORTCUT_KEY)[0] || '<Super><Shift>t',
             valign: Gtk.Align.CENTER,
         });
         shortcutRow.add_suffix(shortcutLabel);
@@ -56,7 +60,7 @@ export default class TextExtractorPreferences extends ExtensionPreferences {
             css_classes: ['flat'],
         });
         resetButton.connect('clicked', () => {
-            settings.set_strv('shortcut', ['<Super><Shift>t']);
+            settings.set_strv(SHORTCUT_KEY, ['<Super><Shift>t']);
             shortcutLabel.accelerator = '<Super><Shift>t';
         });
         resetRow.add_suffix(resetButton);
@@ -169,6 +173,17 @@ export default class TextExtractorPreferences extends ExtensionPreferences {
         aboutGroup.add(versionRow);
     }
 
+    _migrateShortcutSetting(settings) {
+        if (settings.get_user_value(SHORTCUT_KEY) !== null) {
+            return;
+        }
+
+        const legacyShortcut = settings.get_user_value(LEGACY_SHORTCUT_KEY);
+        if (legacyShortcut !== null) {
+            settings.set_value(SHORTCUT_KEY, legacyShortcut);
+        }
+    }
+
     _showShortcutDialog(parent, settings, shortcutLabel) {
         const dialog = new Gtk.Dialog({
             title: _('Set Keyboard Shortcut'),
@@ -215,7 +230,7 @@ export default class TextExtractorPreferences extends ExtensionPreferences {
             const accel = Gtk.accelerator_name(keyval, mask);
             
             if (accel) {
-                settings.set_strv('shortcut', [accel]);
+                settings.set_strv(SHORTCUT_KEY, [accel]);
                 shortcutLabel.accelerator = accel;
             }
             

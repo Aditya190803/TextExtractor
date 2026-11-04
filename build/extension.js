@@ -24,6 +24,8 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const SHELL_SCREENSHOT_ONLY_MODE = 2;
 const DEBUG_LOGS = false;
+const SHORTCUT_KEY = 'text-extractor-shortcut';
+const LEGACY_SHORTCUT_KEY = 'shortcut';
 
 export default class TextExtractorExtension extends Extension {
     constructor(metadata) {
@@ -40,6 +42,7 @@ export default class TextExtractorExtension extends Extension {
 
     enable() {
         this._settings = this.getSettings();
+        this._migrateShortcutSetting();
         
         // Create screenshot directory
         this._ensureScreenshotDir();
@@ -48,7 +51,7 @@ export default class TextExtractorExtension extends Extension {
         this._registerKeybinding();
         
         // Watch for shortcut changes
-        this._shortcutChangedId = this._settings.connect('changed::shortcut', () => {
+        this._shortcutChangedId = this._settings.connect(`changed::${SHORTCUT_KEY}`, () => {
             this._unregisterKeybinding();
             this._registerKeybinding();
         });
@@ -96,9 +99,20 @@ export default class TextExtractorExtension extends Extension {
         }
     }
 
+    _migrateShortcutSetting() {
+        if (this._settings.get_user_value(SHORTCUT_KEY) !== null) {
+            return;
+        }
+
+        const legacyShortcut = this._settings.get_user_value(LEGACY_SHORTCUT_KEY);
+        if (legacyShortcut !== null) {
+            this._settings.set_value(SHORTCUT_KEY, legacyShortcut);
+        }
+    }
+
     _registerKeybinding() {
         Main.wm.addKeybinding(
-            'shortcut',
+            SHORTCUT_KEY,
             this._settings,
             Meta.KeyBindingFlags.NONE,
             Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
@@ -107,7 +121,7 @@ export default class TextExtractorExtension extends Extension {
     }
 
     _unregisterKeybinding() {
-        Main.wm.removeKeybinding('shortcut');
+        Main.wm.removeKeybinding(SHORTCUT_KEY);
     }
 
     _getOcrHelperPath() {
